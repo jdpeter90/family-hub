@@ -129,12 +129,19 @@ function scheduleFields(){
  $('choreDue').required=f==='once';
 }
 function resetChore(){
- editChore=null;$('choreForm').reset();$('choreChild').disabled=false;$('choreHeading').textContent='Create a chore';scheduleFields()
+ editChore=null;$('choreForm').reset();$('choreChild').disabled=false;
+ ['choreFrequency','choreTimes','choreWeekday','choreDue'].forEach(id=>{$(id).disabled=false});
+ $('choreHeading').textContent='Create a chore';scheduleFields()
 }
 function resetReward(){editReward=null;$('rewardForm').reset();$('rewardHeading').textContent='Create a reward'}
 function editAssignment(id){
  const a=store.assignments.find(x=>x.id===id);if(!a)return;
- editChore=id;$('choreHeading').textContent='Edit chore';
+ const hasHistory=(store.completions||[]).some(c=>c.assignment_id===a.id);
+ editChore=id;
+ $('choreHeading').textContent=hasHistory?
+  'Edit chore (schedule locked after first submission)':'Edit chore';
+ ['choreFrequency','choreTimes','choreWeekday','choreDue']
+  .forEach(field=>{$(field).disabled=hasHistory});
  $('choreTitle').value=a.title;$('choreChild').value=a.child_id;
  $('choreChild').disabled=true; // Changing children can invalidate submitted history.
  $('chorePoints').value=a.points;$('choreFrequency').value=a.frequency;
