@@ -73,6 +73,9 @@ header .row>div{min-width:0}
  .hub-clock{font-size:16px}
 }
 
+.grocery-add-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
+.grocery-add-row input{flex:1;min-width:160px}.grocery-add-row button{white-space:nowrap}
+#groceryFeedback{min-height:20px}
 </style></head>
 <body>
 <header><div class="row between">
@@ -144,7 +147,17 @@ header .row>div{min-width:0}
   <section class="card"><h2>🍽 Family meals this week</h2><p class="muted small">The dinner plan repeats weekly. Parents can change it from the main dashboard.</p><div id="mealList"></div></section>
  </section>
  <section class="hub-section" data-hub-section="groceries" hidden>
-  <section class="card"><h2>🛒 Family grocery list</h2><p class="muted small">View-only on the kids tablet. Parents can add, check off, or remove items from the main dashboard.</p><div id="groceryList"></div></section>
+  <section class="card"><h2>🛒 Family grocery list</h2>
+  <p class="muted small">Anyone using the family tablet can add items. Parents manage check-offs, edits, and removals.</p>
+  <form id="groceryForm" autocomplete="off">
+    <label for="groceryItem">What should we add?</label>
+    <div class="grocery-add-row">
+      <input id="groceryItem" type="text" placeholder="e.g. Milk, apples, bread" maxlength="160" required aria-label="New grocery item">
+      <button id="addGrocery" class="primary" type="submit">+ Add to list</button>
+    </div>
+  </form>
+  <p id="groceryFeedback" class="muted small" role="status" aria-live="polite"></p>
+  <div id="groceryList"></div></section>
  </section>
 </div>
 </main>
@@ -237,6 +250,34 @@ document.addEventListener('click',e=>{
 });
 $('refresh').onclick=()=>action(async()=>{});
 $('familyRefresh').onclick=()=>action(async()=>{});
+$('groceryForm').onsubmit=async e=>{
+ e.preventDefault();
+ if(!ctx||loading)return;
+ const input=$('groceryItem'),button=$('addGrocery'),feedback=$('groceryFeedback');
+ const title=input.value.trim();
+ if(!title||title.length>160){
+  feedback.textContent='Enter an item name (up to 160 characters).';
+  feedback.className='error small';
+  return;
+ }
+ loading=true;
+ button.disabled=true;
+ feedback.textContent='Adding item…';
+ feedback.className='muted small';
+ try{
+  await api.insert('groceries',{family_id:ctx.familyId,item_name:title,completed:false});
+  input.value='';
+  await fetchAll();
+  feedback.textContent='Added to the family grocery list.';
+ }catch(err){
+  feedback.textContent='Could not add item: '+err.message;
+  feedback.className='error small';
+ }finally{
+  button.disabled=false;
+  loading=false;
+ }
+};
+
 $('signOut').onclick=()=>{api.signOut();ctx=null;showApp(false);$('loginError').textContent='Signed out.'};
 $('loginForm').onsubmit=async e=>{
  e.preventDefault();$('loginError').textContent='Signing in…';

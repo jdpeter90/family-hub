@@ -27,6 +27,16 @@ for(const section of ['home','calendar','chores','meals','groceries']){
  assert.ok(html.includes('data-hub-section="'+section+'"'),'Missing section '+section);
 }
 assert.ok(!html.includes('service_role'),'Do not put privileged keys in HTML');
+for(const id of ['groceryForm','groceryItem','addGrocery','groceryFeedback']){
+ assert.ok(ids.includes(id),'Missing grocery-add UI element: '+id);
+}
+assert.match(html, /api\.insert\('groceries',\{family_id:ctx\.familyId,item_name:title,completed:false\}\)/,
+ 'Grocery form must insert an incomplete item into the signed-in tablet family');
+assert.match(html, /const title=input\.value\.trim\(\)/,
+ 'Grocery title must be trimmed');
+assert.ok(!/api\.(patch|delete)\('groceries'/.test(html),
+ 'Kids tablet must not edit or delete groceries');
+
 
 const elems=new Map();
 const get=id=>{
