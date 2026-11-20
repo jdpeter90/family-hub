@@ -21,50 +21,162 @@ label{display:block;margin:12px 0 5px}.card{background:#19374f;border:1px solid 
 .reward:last-child{border-bottom:0}.reward button{flex-shrink:0}
 .error{color:#ffc0c0}.kidicon{font-size:28px;margin-right:7px}
 @media(max-width:550px){header{padding:14px}h1{font-size:22px}.card{padding:14px}.reward{align-items:flex-start;flex-direction:column}.reward button{width:100%}}
+
+/* Unified Fire tablet layout, family information is read-only. */
+[hidden]{display:none!important}
+header .row>div{min-width:0}
+.hub-clock{font-size:21px;font-weight:800}
+#app{margin-top:5px}
+.hub-tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 14px;scrollbar-width:thin}
+.hub-tabs button{white-space:nowrap;flex:1;min-width:max-content;background:#1b3a52}
+.hub-tabs button.active{background:#168d79;border-color:#7fdfbf}
+.hub-section{min-width:0}
+.hub-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(260px,1fr);gap:15px;align-items:start}
+.hub-grid .card{height:100%}
+.hub-title{font-size:24px;font-weight:800;margin:0 0 6px}
+.hub-shortcuts{display:flex;flex-wrap:wrap;gap:9px}
+.hub-shortcuts button{background:#254b67}
+.fact-category{font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:800;color:#95d5ff;margin:0 0 8px}
+.fact-text{font-size:18px;font-weight:700;line-height:1.4;margin-bottom:9px}
+.fact-question{line-height:1.5;color:#c4e1f2;margin-bottom:10px}
+.shared-item{padding:10px 0;border-bottom:1px solid #365976;display:flex;flex-direction:column;gap:4px}
+.shared-item:last-child{border:0}
+.shared-event-time{font-size:12px;color:#b3e8dd;font-weight:700}
+.calendar-title{font-size:22px;font-weight:800}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.calendar-weekdays>span{text-align:center;color:#9abbd4;font-size:12px;padding:6px 0}
+.calendar-grid{margin-top:4px}
+.calendar-placeholder{min-height:72px}
+.cal-day{min-width:0;min-height:93px;text-align:left;display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:8px;border-radius:10px;background:#173149;overflow:hidden}
+.cal-day.selected{outline:2px solid #9fecc2;background:#23526a}
+.cal-day.is-today .day-number{color:#a3eecf;font-weight:900}
+.day-number{font-weight:800;margin-bottom:2px}
+.day-event{display:block;padding:3px 5px;border-radius:5px;background:#2b5b75;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-more{font-size:10px;color:#a9c7dc}
+.meal-row,.grocery-row{display:flex;gap:12px;align-items:start;padding:14px 8px;border-bottom:1px solid #365976}
+.meal-row:last-child,.grocery-row:last-child{border:0}
+.meal-row{justify-content:space-between;gap:20px}
+.meal-day{font-weight:800;min-width:110px}
+.meal-row.today-row{background:#25546b;border-radius:9px}
+.grocery-row{font-size:16px}
+.grocery-row.complete{opacity:.6;text-decoration:line-through}
+.shared-muted{font-size:12px;color:#bbd0dc}
+#syncLabel{font-size:12px;color:#a8d3c7}
+@media(max-width:710px){
+ .hub-grid{grid-template-columns:1fr}
+ .hub-tabs button{flex:0 0 auto}
+ header .row{gap:6px}
+ .calendar-grid,.calendar-weekdays{gap:3px}
+ .cal-day{padding:5px;min-height:65px;border-radius:7px}
+ .calendar-placeholder{min-height:60px}
+ .day-event,.day-more{font-size:9px}
+ .hub-clock{font-size:16px}
+}
+
 </style></head>
-<body><header><div class="row between"><div><h1>⭐ Family Hub · Kids</h1><div class="muted small">Do chores · Earn points · Request rewards</div></div><button id="signOut" style="display:none">Sign out</button></div></header>
+<body>
+<header><div class="row between">
+ <div><h1>✦ Family Hub</h1><div class="muted small">Your family calendar, discovery, chores, meals &amp; groceries</div></div>
+ <div class="row"><span id="hubClock" class="hub-clock" aria-label="Current time"></span><button id="familyRefresh" type="button" style="display:none">↻ Refresh</button><button id="signOut" style="display:none">Sign out</button></div>
+</div></header>
 <main>
 <section id="login" class="card">
-<h2>Sign in to the family tablet</h2>
-<p class="muted small">Use the dedicated tablet account provided by a parent. Do not use a parent account here.</p>
-<form id="loginForm"><label for="loginEmail">Tablet email</label><input id="loginEmail" type="email" autocomplete="username" required>
-<label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required>
-<button class="primary" type="submit">Sign in</button></form><p id="loginError" class="error" role="status"></p></section>
-<div id="app"><section class="card"><h2>Who is using the tablet?</h2><div class="row" id="kidButtons"></div>
-<p class="muted small">Choose your name. A parent must approve your work before you receive points.</p></section>
-<div id="childDashboard" style="display:none">
-<div class="card"><div class="row between"><div><h2 id="childTitle" style="margin-bottom:3px"></h2><div class="muted small" id="today"></div></div><div style="text-align:right"><div class="points" id="pointBalance"></div><div class="muted small">available points</div></div></div></div>
-<div id="status" role="status" class="muted"></div>
-<section class="card"><div class="row between"><h2>🧹 Your chores</h2><button id="refresh">↻ Refresh</button></div><div id="tasks"></div></section>
-<section class="card"><h2>🎁 Reward shop</h2><div id="rewardShop"></div></section>
-<section class="card"><h2>📬 Your reward requests</h2><div id="requests"></div></section>
-</div></div>
-</main><script src="./v3-client.js"></script><script>
+ <h2>Sign in to the family tablet</h2>
+ <p class="muted small">Use the dedicated tablet account provided by a parent. Parent editing accounts belong in the Parent Center.</p>
+ <form id="loginForm"><label for="loginEmail">Tablet email</label><input id="loginEmail" type="email" autocomplete="username" required>
+ <label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required>
+ <button class="primary" type="submit">Sign in</button></form><p id="loginError" class="error" role="status"></p>
+</section>
+<div id="app">
+ <nav class="hub-tabs" aria-label="Family dashboard sections">
+  <button class="active" type="button" data-hub-tab="home">🏠 Today</button>
+  <button type="button" data-hub-tab="calendar">📅 Calendar</button>
+  <button type="button" data-hub-tab="chores">⭐ Chores &amp; rewards</button>
+  <button type="button" data-hub-tab="meals">🍽 Meals</button>
+  <button type="button" data-hub-tab="groceries">🛒 Groceries</button>
+ </nav>
+ <p class="shared-muted" style="margin:0 0 14px">Family information is read-only on this tablet. <span id="syncLabel" aria-live="polite">Loading family information…</span></p>
+ <section class="hub-section" data-hub-section="home">
+  <section class="card">
+   <div class="hub-title">Good to see you! 👋</div>
+   <div class="muted" id="homeDate"></div>
+   <div class="hub-shortcuts" style="margin-top:14px">
+    <button type="button" data-go-tab="calendar">View calendar</button>
+    <button type="button" data-go-tab="chores">My chores &amp; points</button>
+    <button type="button" data-go-tab="groceries">Grocery list</button>
+   </div>
+  </section>
+  <div class="hub-grid">
+   <section class="card"><h2>📅 Coming up</h2><div id="homeEvents"><p class="muted">Loading events…</p></div></section>
+   <section class="card"><div class="row between"><h2>🧠 Discovery of the Day</h2><button id="nextFact" type="button">Another ↻</button></div>
+    <div id="factCategory" class="fact-category"></div><div id="factText" class="fact-text"></div>
+    <div id="factQuestion" class="fact-question"></div><div class="muted small">A new fact each day</div>
+   </section>
+  </div>
+  <div class="hub-grid">
+   <section class="card"><h2>🍽 Today's dinner</h2><div id="todayMeal" style="font-size:18px"></div><button type="button" data-go-tab="meals" style="margin-top:12px">View the week</button></section>
+   <section class="card"><h2>🛒 Grocery list</h2><p id="grocerySummary"></p><button type="button" data-go-tab="groceries">View items</button></section>
+  </div>
+ </section>
+ <section class="hub-section" data-hub-section="calendar" hidden>
+  <section class="card">
+   <div class="row between"><h2 class="calendar-title" id="calMonth">Calendar</h2>
+    <div class="row"><button id="calPrev" type="button" aria-label="Previous month">‹</button><button id="calNow" type="button">Today</button><button id="calNext" type="button" aria-label="Next month">›</button></div>
+   </div>
+   <div class="calendar-weekdays"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+   <div class="calendar-grid" id="calGrid"></div>
+  </section>
+  <section class="card"><h2 id="calSelectedTitle">Selected day</h2><div id="calSelectedEvents"></div></section>
+ </section>
+ <section class="hub-section" data-hub-section="chores" hidden>
+  <section class="card"><h2>Who is using the tablet?</h2><div class="row" id="kidButtons"></div>
+    <p class="muted small">Choose your name. A parent approves completed work and reward requests.</p></section>
+  <div id="childDashboard" style="display:none">
+   <div class="card"><div class="row between"><div><h2 id="childTitle" style="margin-bottom:3px"></h2><div class="muted small" id="today"></div></div>
+    <div style="text-align:right"><div class="points" id="pointBalance"></div><div class="muted small">available points</div></div></div></div>
+   <div id="status" role="status" class="muted"></div>
+   <section class="card"><div class="row between"><h2>🧹 Your chores</h2><button id="refresh" type="button">↻ Refresh</button></div><div id="tasks"></div></section>
+   <section class="card"><h2>🎁 Reward shop</h2><div id="rewardShop"></div></section>
+   <section class="card"><h2>📬 Your reward requests</h2><div id="requests"></div></section>
+  </div>
+ </section>
+ <section class="hub-section" data-hub-section="meals" hidden>
+  <section class="card"><h2>🍽 Family meals this week</h2><p class="muted small">The dinner plan repeats weekly. Parents can change it from the main dashboard.</p><div id="mealList"></div></section>
+ </section>
+ <section class="hub-section" data-hub-section="groceries" hidden>
+  <section class="card"><h2>🛒 Family grocery list</h2><p class="muted small">View-only on the kids tablet. Parents can add, check off, or remove items from the main dashboard.</p><div id="groceryList"></div></section>
+ </section>
+</div>
+</main>
+<script src="./v3-client.js"></script>
+<script src="./tablet-shared.js"></script><script>
 (function(){
 'use strict';
 const api=FamilyHubV3.client('familyhub-tablet-session');
 const $=id=>document.getElementById(id);
 const escapeHTML=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 let ctx=null,store={},kid=null,loading=false;
-function showApp(yes){$('login').style.display=yes?'none':'block';$('app').style.display=yes?'block':'none';$('signOut').style.display=yes?'inline-block':'none'}
-function tell(s,bad){$('status').textContent=s;$('status').className=bad?'error':'muted'}
+function showApp(yes){$('login').style.display=yes?'none':'block';$('app').style.display=yes?'block':'none';$('signOut').style.display=yes?'inline-block':'none';$('familyRefresh').style.display=yes?'inline-block':'none'}
+function tell(s,bad){$('status').textContent=s;$('status').className=bad?'error':'muted';$('syncLabel').textContent=s;$('syncLabel').className=bad?'error':'muted'}
 function balance(id){return (store.transactions||[]).filter(t=>t.child_id===id).reduce((a,t)=>a+Number(t.points),0)}
 function profile(id){return (store.profiles||[]).find(c=>c.id===id)}
 async function fetchAll(){
  if(!ctx)return;
- const [profiles,assignments,completions,transactions,rewards,requests]=await Promise.all(
-  ['child_profiles','chore_assignments','chore_completions','point_transactions','rewards','reward_requests']
+ const [profiles,assignments,completions,transactions,rewards,requests,events,meals,groceries]=await Promise.all(
+  ['child_profiles','chore_assignments','chore_completions','point_transactions','rewards','reward_requests','events','meals','groceries']
   .map(t=>api.list(t,ctx.familyId)));
- store={profiles,assignments,completions,transactions,rewards,requests};
+ store={profiles,assignments,completions,transactions,rewards,requests,events,meals,groceries};
+ $('syncLabel').textContent='Synced '+new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
  if(kid&&!profile(kid))kid=null;
  render();
 }
 function render(){
+ FamilyHubShared.render(store);
  const kids=$('kidButtons');kids.replaceChildren();
  (store.profiles||[]).forEach((p,i)=>{
   const b=document.createElement('button');b.className='select'+(kid===p.id?' active':'');
   b.type='button';b.textContent=(i===0?'🌟 ':'🚀 ')+p.name;
-  b.onclick=()=>{kid=p.id;sessionStorage.setItem('familyhub-selected-child',kid);render()};
+  b.onclick=()=>{kid=p.id;sessionStorage.setItem('familyhub-selected-child',kid);FamilyHubShared.setTab('chores');render()};
   kids.appendChild(b);
  });
  $('childDashboard').style.display=kid?'block':'none';
@@ -124,6 +236,7 @@ document.addEventListener('click',e=>{
  }
 });
 $('refresh').onclick=()=>action(async()=>{});
+$('familyRefresh').onclick=()=>action(async()=>{});
 $('signOut').onclick=()=>{api.signOut();ctx=null;showApp(false);$('loginError').textContent='Signed out.'};
 $('loginForm').onsubmit=async e=>{
  e.preventDefault();$('loginError').textContent='Signing in…';
@@ -140,7 +253,8 @@ async function init(){
  }catch(e){showApp(false);if(e.message!=='Please sign in.')$('loginError').textContent=e.message}
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ctx&&!loading)fetchAll().catch(e=>tell(e.message,true))});
-setInterval(()=>{if(ctx&&!loading&&!document.hidden)fetchAll().catch(e=>tell(e.message,true))},20000);
+setInterval(()=>{if(ctx&&!loading&&!document.hidden)fetchAll().catch(e=>tell(e.message,true))},45000);
+FamilyHubShared.init();
 init();
 })();
 </script></body></html>
