@@ -11,10 +11,23 @@ This branch builds on Family Hub v2.1 without rewriting its calendar, meals, gro
 | index.html | Existing v2.1 app, plus a parent-only navigation link |
 | parent.html | Parent dashboard for chore/reward setup, reviews, and point adjustments |
 | tablet.html | Children's shared tablet interface: choose profile, submit chores, request rewards |
+| parent-staging.html / tablet-staging.html | Staging-only pages using the isolated Supabase staging project |
 | v3-client.js | Browser client; separate parent/tablet session keys; publishable key plus RLS |
-| drafts/v3-security-foundation.sql | UNAPPLIED role, RLS, grants, integrity constraints |
-| drafts/v3-rpc.sql | UNAPPLIED authenticated RPCs for submissions, approval, points and redemptions |
-| drafts/v3-regression-tests.sql | UNEXECUTED rollback-only staging integration checks |
+| drafts/v3-security-foundation.sql | APPLIED IN STAGING ONLY; not production |
+| drafts/v3-rpc.sql | APPLIED IN STAGING ONLY; not production |
+| drafts/v3-regression-tests.sql | VERIFIED rollback-only staging integration checks |
+
+## Staging environment: created and tested
+
+- Separate Supabase staging project: Family Hub v3 Staging (project reference `kytphqpfpchmmmbsmpcz`).
+- Supabase quoted **$0/month** for this additional project before creation.
+- Staging schema, security policies and v3 RPCs have been installed successfully.
+- Both `drafts/v3-regression-tests.sql` and `drafts/v3-isolation-tests.sql` passed using synthetic authenticated principals, RLS, role switching and a final ROLLBACK.
+- Checked: approval/deduction accounting, duplicate approvals, overdue once chores, needs-work resubmission, insufficient points, cross-family isolation, tablet forbidden writes/approvals.
+- Staging has two named test child profiles, four sample assignments and two test rewards. It has **no Auth users attached to the test family yet**.
+- `parent-staging.html` and `tablet-staging.html` are wired to the **staging API and staging publishable key** with separate browser storage keys. They are on the feature branch only and not publicly hosted.
+- GitHub Actions browser-client smoke tests passed on the feature branch, including staging page wiring.
+- Remaining: create test-only Supabase Auth parent/tablet users through the Auth dashboard (never manually insert passwords into auth.users); attach family memberships; stage live sign-in and visual/device tests.
 
 ## Security and business rules
 
@@ -45,6 +58,6 @@ This branch builds on Family Hub v2.1 without rewriting its calendar, meals, gro
 ## Caveats
 
 - Current v3 code is NOT functioning in production, because the v3 RPCs and RLS are not deployed.
-- No real Supabase end-to-end test has been performed. The frontend client passed a mocked role/login/RPC smoke test and the JavaScript parses successfully.
+- SQL integration tests in isolated staging passed, but browser sign-ins through Supabase Auth and real device tests are still pending.
 - Legacy chores are not automatically migrated. The new v3 assignments live separately, preserving v2.1 behavior during development.
 - Backend authorization matters; disabled buttons and a child-selection UI are never security controls.
