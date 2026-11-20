@@ -1,9 +1,9 @@
 /* Family Hub v3 - shared browser client (no service role secrets). */
 (function (global) {
   'use strict';
-  const API = 'https://dyzdyqllmfoltiqkfvxm.supabase.co';
-  // Supabase publishable key; safe in browser code only because backend enforces RLS.
-  const KEY = 'sb_publishable__zmbFmdUZTDonhyhkeWgsQ_urpHbmVt';
+  const DEFAULT_API = 'https://dyzdyqllmfoltiqkfvxm.supabase.co';
+  // Publishable keys are intended for browsers; the database must enforce RLS.
+  const DEFAULT_KEY = 'sb_publishable__zmbFmdUZTDonhyhkeWgsQ_urpHbmVt';
   function localToday() {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -14,7 +14,13 @@
   function dayOfWeek(isoDate) {
     return new Date(isoDate + 'T12:00:00Z').getUTCDay();
   }
-  function client(storageKey) {
+  function client(storageKey, config) {
+    config = config || {};
+    const API = config.api || DEFAULT_API;
+    const KEY = config.publishableKey || DEFAULT_KEY;
+    if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(API)) {
+      throw new Error('Invalid Supabase API origin');
+    }
     let session = null;
     try { session = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); } catch (_) { }
     function save(s) {
