@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const pageFiles = ['index.html', 'parent.html', 'tablet.html'];
+const pageFiles = ['index.html', 'parent.html', 'tablet.html', 'parent-staging.html', 'tablet-staging.html'];
 const codeFile = read('v3-client.js');
 
 for (const p of pageFiles) {
@@ -21,6 +21,14 @@ new vm.Script(codeFile, { filename: 'v3-client.js' });
 assert.match(read('parent.html'), /src="\.\/v3-client\.js"/);
 assert.match(read('tablet.html'), /src="\.\/v3-client\.js"/);
 assert.match(read('index.html'), /href="\.\/parent\.html"/);
+
+assert.match(read('parent-staging.html'), /familyhub-staging-parent-session/);
+assert.match(read('tablet-staging.html'), /familyhub-staging-tablet-session/);
+assert.match(read('parent-staging.html'), /kytphqpfpchmmmbsmpcz\.supabase\.co/);
+assert.match(read('tablet-staging.html'), /kytphqpfpchmmmbsmpcz\.supabase\.co/);
+assert.doesNotMatch(read('parent-staging.html'), /FamilyHubV3\.client\('familyhub-session'\)/);
+assert.doesNotMatch(read('tablet-staging.html'), /FamilyHubV3\.client\('familyhub-tablet-session'\)/);
+
 assert.match(read('index.html'), /data-tab="calendar"/);
 assert.doesNotMatch(read('tablet.html'), /familyhub-session['"]/);
 assert.doesNotMatch(codeFile, /sb_secret_/);
