@@ -29,6 +29,18 @@ This branch builds on Family Hub v2.1 without rewriting its calendar, meals, gro
 - GitHub Actions browser-client smoke tests passed on the feature branch, including staging page wiring.
 - Remaining: use the downloadable GitHub Actions staging preview artifact to verify real password login, page rendering and complete parent/tablet handoff; then test on actual devices. No production deployment until approved.
 
+## Final hardening and release preparation (November 20, 2026)
+
+- Discovered and reproduced a schedule-edit duplication loophole for once-only chores; fixed it in staging with a database trigger that locks scheduling fields after the first submission. Regular changes to title, points or active state remain allowed.
+- Parent edit form now disables schedule controls for chores with completion history.
+- Added a parent-controlled reward repeatability option. One-time rewards cannot be redeemed twice, even if the setting changes while another request is pending; verified in rollback-only staging tests.
+- Confirmed staging legacy tables now match the optional columns found in production. Ran CRUD regression checks on v2.1 events, chores, groceries, and meals; verified the tablet cannot access them.
+- Supabase function privilege audit: anonymous cannot execute any of the nine authenticated privileged RPC/helper functions; trigger function cannot be executed directly by browser roles. All admin/child role checks remain in the backend.
+- Prepared a single-transaction, preflight-guarded production SQL file: `drafts/v3-PRODUCTION-ATOMIC-NOT-APPLIED.sql`; **never execute without owner approval and private backup**.
+- Prepared and staging-tested a non-destructive emergency v2.1 policy restore: `drafts/v3-EMERGENCY-ROLLBACK-NOT-APPLIED.sql`.
+- Created separate **draft** production release PR #2 containing only `index.html`, `parent.html`, `tablet.html` and `v3-client.js`: https://github.com/jdpeter90/family-hub/pull/2. Do **not merge** before the backend rollout.
+- Production read-only preflight check passed: both parent memberships are admins, both child profiles exist, all four legacy policies are still in place, and the five new v3 tables have no activity.
+
 ## Security and business rules
 
 - The two existing parent accounts are admins.
