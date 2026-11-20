@@ -19,7 +19,11 @@ HOW TO TEST:
    account, choose a test child, and tap "I did it!".
 7. Return to the parent page, refresh, and approve the submitted chore.
 8. Return to the tablet, refresh, and verify the point balance increased.
-9. Use "Request reward" then parent "Redeem"; confirm the balance decreases.
+9. The least expensive example reward costs 15 points. If your child has only
+   10 points after the first chore, use the parent dashboard's Manual point
+   adjustment to add a 20-point TEST bonus (reason: "Staging test bonus").
+10. On the tablet, tap "Request reward". Back on the parent page, refresh,
+    approve the reward, and confirm the child's point balance decreases.
 
 SECURITY:
 - NEVER sign in to these testing pages with your real production parent account.
