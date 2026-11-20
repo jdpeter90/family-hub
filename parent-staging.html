@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><title>STAGING ONLY - Family Hub · Parent Rewards</title>
+<style>
+:root{font:15px system-ui,-apple-system,Arial,sans-serif;color:#eef3fc;background:#101827}
+*{box-sizing:border-box}body{margin:0}header{background:#161f31;border-bottom:1px solid #34445d;padding:16px 20px}
+h1{font-size:23px;margin:0}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0 0 6px}
+a{color:#9dc0ff}button,input,select,textarea{font:inherit;border-radius:9px}
+button{cursor:pointer;padding:9px 12px;background:#2b3e5f;border:1px solid #4c6080;color:white}
+button:disabled{opacity:.5;cursor:not-allowed}button:hover:not(:disabled){background:#405981}
+button.primary{background:#5476f5;border-color:#5476f5}button.secondary{background:#293749}
+button.warn{background:#5b3848;border-color:#7a495e}
+input,select,textarea{background:#0d1627;border:1px solid #495c77;color:#fff;padding:10px;width:100%}
+label{display:block;color:#c1cde2;font-size:13px;margin-bottom:5px}
+main{max-width:1220px;margin:auto;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.panel{padding:18px;background:#192438;border:1px solid #354662;border-radius:14px;min-width:0;margin-bottom:16px}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.between{justify-content:space-between}.muted{color:#acbad2}.small{font-size:12px}.field{min-width:120px;flex:1}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stat{padding:12px 14px;background:#0f1b30;border:1px solid #334966;border-radius:12px;flex:1}
+.stat strong{display:block;font-size:25px}.item{padding:12px 0;border-bottom:1px solid #33445f}
+.item:last-child{border-bottom:0}.item .row{margin-top:9px}
+.tag{padding:3px 7px;border-radius:6px;background:#344766;font-size:11px;white-space:nowrap}
+.tag.off{background:#483941}.error{color:#ffb2b8}.success{color:#91ebbd}
+#login{max-width:420px;margin:50px auto}#login input{margin:4px 0 13px}
+#app{display:none}#message{min-height:22px;margin:5px 0 15px}
+input[type=checkbox]{width:auto;transform:scale(1.2);margin-right:8px}
+#rewardDescription{min-height:65px}
+@media(max-width:790px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}header{padding:14px}}
+</style></head>
+<body><div style="background:#663e1e;padding:12px;text-align:center;font-weight:700;color:#ffe2ae">🧪 STAGING ONLY — separate database, test accounts only</div><header><div class="row between"><div><h1>🏆 Family Hub · Parent Center</h1>
+<div class="muted small">Chores, approvals, rewards, and point balances</div></div>
+<div class="row"><a href="./index.html">← Family calendar</a><button id="signOut" style="display:none">Sign out</button></div></div></header>
+<main>
+<section id="login" class="panel">
+<h2>Parent sign in</h2><p class="muted small">Use your existing parent Family Hub account.</p>
+<form id="loginForm"><label>Email</label><input id="email" type="email" autocomplete="username" required>
+<label>Password</label><input id="password" type="password" autocomplete="current-password" required>
+<button class="primary" type="submit">Sign in</button></form>
+<p id="loginMessage" class="error" role="status"></p>
+</section>
+<div id="app">
+<div id="message" role="status" class="muted"></div>
+<section class="panel"><div class="row between"><h2>Family points</h2><button id="refresh" type="button">↻ Refresh</button></div><div id="balances" class="row"></div>
+<p class="muted small">Only parent approval awards points. A reward costs points only when a parent approves its request.</p></section>
+<div class="grid">
+<section class="panel"><h2>Chores awaiting approval</h2><div id="pendingChores"></div></section>
+<section class="panel"><h2>Reward requests</h2><div id="pendingRewards"></div></section>
+<section class="panel"><h2 id="choreHeading">Create a chore</h2>
+<form id="choreForm">
+<div class="fields"><div><label for="choreTitle">Chore title</label><input id="choreTitle" maxlength="120" required placeholder="Make bed"></div>
+<div><label for="choreChild">Assign to</label><select id="choreChild" required></select></div>
+<div><label for="chorePoints">Points</label><input id="chorePoints" type="number" min="0" max="10000" value="10" required></div>
+<div><label for="choreFrequency">Repeat</label><select id="choreFrequency"><option value="daily">Every day</option><option value="weekly">Every week</option><option value="once">One time</option></select></div>
+<div id="dailyField"><label for="choreTimes">Times each day</label><select id="choreTimes"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+<div id="weeklyField" hidden><label for="choreWeekday">Weekday</label><select id="choreWeekday"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
+<div id="onceField" hidden><label for="choreDue">Due date</label><input id="choreDue" type="date"></div>
+</div>
+<div class="row" style="margin-top:12px"><label style="margin:0"><input id="choreActive" type="checkbox" checked>Active</label><button class="primary" type="submit">Save chore</button><button id="cancelChore" type="button">Clear</button></div>
+</form><hr style="border-color:#34445e"><h3>Assigned chores</h3><div id="choreList"></div></section>
+<section class="panel"><h2 id="rewardHeading">Create a reward</h2>
+<form id="rewardForm"><label for="rewardTitle">Reward title</label><input id="rewardTitle" maxlength="120" required placeholder="Choose Friday's movie">
+<div class="fields" style="margin-top:10px"><div><label for="rewardCost">Point cost</label><input id="rewardCost" type="number" min="1" max="100000" value="50" required></div>
+<div style="align-self:end"><label style="margin:0"><input id="rewardActive" type="checkbox" checked>Active</label></div></div>
+<label style="margin-top:10px" for="rewardDescription">Description (optional)</label><textarea id="rewardDescription" maxlength="500"></textarea>
+<div class="row" style="margin-top:12px"><button class="primary" type="submit">Save reward</button><button id="cancelReward" type="button">Clear</button></div></form>
+<hr style="border-color:#34445e"><h3>Reward catalog</h3><div id="rewardList"></div></section>
+</div>
+<section class="panel"><h2>Recent points activity</h2><div id="ledger"></div>
+<div class="row" style="margin-top:15px"><h3 style="margin:0">Manual point adjustment</h3><span class="muted small">For corrections and bonuses</span></div>
+<form id="adjustForm" class="row" style="margin-top:12px">
+<select id="adjustChild" style="max-width:200px" required></select>
+<input id="adjustAmount" type="number" min="-100000" max="100000" required placeholder="+10 or -5" style="max-width:140px">
+<input id="adjustReason" maxlength="240" minlength="3" required placeholder="Reason for adjustment" style="flex:1;min-width:160px">
+<button class="primary" type="submit">Apply</button></form></section>
+</div></main><script src="./v3-client.js"></script><script>
+(function(){
+'use strict';
+const api=FamilyHubV3.client('familyhub-staging-parent-session',{api:'https://kytphqpfpchmmmbsmpcz.supabase.co',publishableKey:'sb_publishable_XAwDzAiXctflZWfpazRg3w_IJ7qf2K1'});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let ctx=null,store={},working=false,editChore=null,editReward=null;
+const children=()=>store.profiles||[];
+const childName=id=>children().find(x=>x.id===id)?.name||'Unknown child';
+const choreTitle=id=>(store.assignments||[]).find(x=>x.id===id)?.title||'Unknown chore';
+const balance=id=>(store.transactions||[]).filter(x=>x.child_id===id).reduce((n,x)=>n+Number(x.points),0);
+function message(s,bad){$('message').textContent=s;$('message').className=bad?'error':'muted'}
+function statusNote(id,s){$(id).textContent=s}
+function showApp(yes){$('app').style.display=yes?'block':'none';$('login').style.display=yes?'none':'block';$('signOut').style.display=yes?'inline-block':'none'}
+function options(select){
+ select.replaceChildren();
+ children().forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;select.appendChild(o)});
+}
+async function enter(){
+ try{await api.ensureSession();ctx=await api.membership('admin');await reload();showApp(true)}
+ catch(e){showApp(false);statusNote('loginMessage',e.message)}
+}
+async function reload(){
+ if(!ctx)return;
+ const [profiles,assignments,completions,transactions,rewards,requests]=await Promise.all([
+  'child_profiles','chore_assignments','chore_completions','point_transactions','rewards','reward_requests'
+ ].map(t=>api.list(t,ctx.familyId)));
+ store={profiles,assignments,completions,transactions,rewards,requests};
+ const keepChore=$('choreChild').value,keepAdjust=$('adjustChild').value;
+ options($('choreChild'));options($('adjustChild'));
+ if(children().some(c=>c.id===keepChore))$('choreChild').value=keepChore;
+ if(children().some(c=>c.id===keepAdjust))$('adjustChild').value=keepAdjust;
+ render();
+}
+function render(){
+ $('balances').innerHTML=children().map(c=>'<div class="stat"><span>'+esc(c.name)+'</span><strong>'+balance(c.id).toLocaleString()+'</strong><span class="small muted">points available</span></div>').join('');
+ const pending=(store.completions||[]).filter(x=>x.status==='pending').sort((a,b)=>b.submitted_at.localeCompare(a.submitted_at));
+ $('pendingChores').innerHTML=pending.length?pending.map(c=>'<div class="item"><strong>'+esc(choreTitle(c.assignment_id))+'</strong> <span class="tag">'+esc(childName(c.child_id))+'</span><div class="small muted">'+esc(c.occurrence_date)+' · '+c.points_snapshot+' points</div><div class="row"><button class="primary" data-action="approveChore" data-id="'+esc(c.id)+'">Approve</button><button data-action="needsWork" data-id="'+esc(c.id)+'">Needs work</button></div></div>').join(''):'<p class="muted">No chores awaiting approval.</p>';
+ const requests=(store.requests||[]).filter(x=>x.status==='pending').sort((a,b)=>b.requested_at.localeCompare(a.requested_at));
+ $('pendingRewards').innerHTML=requests.length?requests.map(r=>'<div class="item"><strong>'+esc(r.reward_title_snapshot)+'</strong> <span class="tag">'+esc(childName(r.child_id))+'</span><div class="small muted">Cost: '+r.points_cost_snapshot+' · Balance: '+balance(r.child_id)+'</div><div class="row"><button class="primary" data-action="approveReward" data-id="'+esc(r.id)+'">Redeem</button><button data-action="declineReward" data-id="'+esc(r.id)+'">Decline</button></div></div>').join(''):'<p class="muted">No pending reward requests.</p>';
+ const assignments=[...(store.assignments||[])].sort((a,b)=>Number(b.active)-Number(a.active)||a.title.localeCompare(b.title));
+ $('choreList').innerHTML=assignments.length?assignments.map(a=>'<div class="item"><div class="row between"><strong>'+esc(a.title)+'</strong><span class="tag '+(!a.active?'off':'')+'">'+(a.active?'Active':'Disabled')+'</span></div><div class="small muted">'+esc(childName(a.child_id))+' · '+a.points+' pts · '+(a.frequency==='weekly'?'Weekly, '+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][a.day_of_week]:a.frequency==='once'?'One time, '+a.due_date:'Daily ×'+a.times_per_day)+'</div><div class="row"><button data-action="editChore" data-id="'+esc(a.id)+'">Edit</button><button data-action="toggleChore" data-id="'+esc(a.id)+'">'+(a.active?'Disable':'Enable')+'</button></div></div>').join(''):'<p class="muted">No v3 chores created.</p>';
+ const rewards=[...(store.rewards||[])].sort((a,b)=>Number(b.active)-Number(a.active)||a.title.localeCompare(b.title));
+ $('rewardList').innerHTML=rewards.length?rewards.map(r=>'<div class="item"><div class="row between"><strong>'+esc(r.title)+'</strong><span class="tag '+(!r.active?'off':'')+'">'+(r.active?'Active':'Disabled')+'</span></div><div class="small muted">'+r.points_cost+' points'+(r.description?' · '+esc(r.description):'')+'</div><div class="row"><button data-action="editReward" data-id="'+esc(r.id)+'">Edit</button><button data-action="toggleReward" data-id="'+esc(r.id)+'">'+(r.active?'Disable':'Enable')+'</button></div></div>').join(''):'<p class="muted">No rewards created yet.</p>';
+ const tx=[...(store.transactions||[])].sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,30);
+ $('ledger').innerHTML=tx.length?tx.map(t=>'<div class="item row between"><div><strong>'+esc(childName(t.child_id))+'</strong> · '+esc(t.description)+'<div class="small muted">'+new Date(t.created_at).toLocaleString()+'</div></div><strong class="'+(t.points>0?'success':'error')+'">'+(t.points>0?'+':'')+t.points+'</strong></div>').join(''):'<p class="muted">No points earned or redeemed yet.</p>';
+}
+function scheduleFields(){
+ const f=$('choreFrequency').value;
+ $('dailyField').hidden=f!=='daily';
+ $('weeklyField').hidden=f!=='weekly';
+ $('onceField').hidden=f!=='once';
+ $('choreDue').required=f==='once';
+}
+function resetChore(){
+ editChore=null;$('choreForm').reset();$('choreChild').disabled=false;$('choreHeading').textContent='Create a chore';scheduleFields()
+}
+function resetReward(){editReward=null;$('rewardForm').reset();$('rewardHeading').textContent='Create a reward'}
+function editAssignment(id){
+ const a=store.assignments.find(x=>x.id===id);if(!a)return;
+ editChore=id;$('choreHeading').textContent='Edit chore';
+ $('choreTitle').value=a.title;$('choreChild').value=a.child_id;
+ $('choreChild').disabled=true; // Changing children can invalidate submitted history.
+ $('chorePoints').value=a.points;$('choreFrequency').value=a.frequency;
+ $('choreTimes').value=a.times_per_day;$('choreWeekday').value=a.day_of_week??0;
+ $('choreDue').value=a.due_date||'';$('choreActive').checked=a.active;scheduleFields();
+ $('choreHeading').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function editCatalogReward(id){
+ const r=store.rewards.find(x=>x.id===id);if(!r)return;
+ editReward=id;$('rewardHeading').textContent='Edit reward';$('rewardTitle').value=r.title;
+ $('rewardCost').value=r.points_cost;$('rewardDescription').value=r.description||'';
+ $('rewardActive').checked=r.active;$('rewardHeading').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function execute(job){
+ if(working)return;working=true;message('Saving…');
+ try{await job();await reload();message('Saved and synchronized.')}
+ catch(e){message('Could not save: '+e.message,true)}
+ finally{working=false}
+}
+$('choreFrequency').addEventListener('change',scheduleFields);
+$('cancelChore').onclick=resetChore;$('cancelReward').onclick=resetReward;
+$('choreForm').onsubmit=e=>{
+ e.preventDefault();
+ const f=$('choreFrequency').value, once=f==='once',weekly=f==='weekly';
+ const body={title:$('choreTitle').value.trim(),points:Number($('chorePoints').value),
+  frequency:f,times_per_day:f==='daily'?Number($('choreTimes').value):1,
+  day_of_week:weekly?Number($('choreWeekday').value):null,
+  due_date:once?$('choreDue').value:null,active:$('choreActive').checked};
+ if(!body.title||(once&&!body.due_date))return message('Complete the chore title and schedule.',true);
+ execute(async()=>{
+  if(editChore)await api.patch('chore_assignments',editChore,ctx.familyId,body);
+  else await api.insert('chore_assignments',{...body,child_id:$('choreChild').value,family_id:ctx.familyId});
+  resetChore();
+ });
+};
+$('rewardForm').onsubmit=e=>{
+ e.preventDefault();
+ const body={title:$('rewardTitle').value.trim(),description:$('rewardDescription').value.trim(),
+  points_cost:Number($('rewardCost').value),active:$('rewardActive').checked,updated_at:new Date().toISOString()};
+ if(!body.title)return message('Enter a reward title.',true);
+ execute(async()=>{
+  if(editReward)await api.patch('rewards',editReward,ctx.familyId,body);
+  else await api.insert('rewards',{...body,family_id:ctx.familyId});
+  resetReward();
+ });
+};
+$('adjustForm').onsubmit=e=>{
+ e.preventDefault();
+ const n=Number($('adjustAmount').value),reason=$('adjustReason').value.trim();
+ if(!Number.isInteger(n)||!n||reason.length<3)return message('Enter a nonzero whole number and a reason.',true);
+ if(!confirm('Adjust '+childName($('adjustChild').value)+"'s balance by "+n+' points?'))return;
+ execute(async()=>{
+  await api.rpc('adjust_child_points',{target_child_id:$('adjustChild').value,delta_points:n,reason});
+  $('adjustAmount').value='';$('adjustReason').value='';
+ });
+};
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button[data-action]');if(!b||!ctx)return;
+ const id=b.dataset.id,action=b.dataset.action;
+ if(action==='editChore')return editAssignment(id);
+ if(action==='editReward')return editCatalogReward(id);
+ if(action==='toggleChore'){const a=store.assignments.find(x=>x.id===id);return execute(()=>api.patch('chore_assignments',id,ctx.familyId,{active:!a.active}))}
+ if(action==='toggleReward'){const r=store.rewards.find(x=>x.id===id);return execute(()=>api.patch('rewards',id,ctx.familyId,{active:!r.active,updated_at:new Date().toISOString()}))}
+ if(action==='approveChore')return execute(()=>api.rpc('approve_chore',{target_completion_id:id}));
+ if(action==='needsWork')return execute(()=>api.rpc('request_chore_revision',{target_completion_id:id}));
+ if(action==='approveReward')return execute(()=>api.rpc('approve_reward_request',{target_request_id:id}));
+ if(action==='declineReward')return execute(()=>api.rpc('decline_reward_request',{target_request_id:id}));
+});
+$('refresh').onclick=()=>execute(async()=>{});
+$('signOut').onclick=()=>{api.signOut();ctx=null;showApp(false);statusNote('loginMessage','Signed out.')};
+$('loginForm').onsubmit=async e=>{
+ e.preventDefault();statusNote('loginMessage','Signing in…');
+ try{await api.signIn($('email').value,$('password').value);$('password').value='';ctx=await api.membership('admin');await reload();showApp(true);statusNote('loginMessage','')}
+ catch(err){api.signOut();statusNote('loginMessage',err.message)}
+};
+scheduleFields();enter();
+})();
+</script></body></html>
