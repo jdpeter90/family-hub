@@ -24,10 +24,10 @@ This branch builds on Family Hub v2.1 without rewriting its calendar, meals, gro
 - Staging schema, security policies and v3 RPCs have been installed successfully.
 - Both `drafts/v3-regression-tests.sql` and `drafts/v3-isolation-tests.sql` passed using synthetic authenticated principals, RLS, role switching and a final ROLLBACK.
 - Checked: approval/deduction accounting, duplicate approvals, overdue once chores, needs-work resubmission, insufficient points, cross-family isolation, tablet forbidden writes/approvals.
-- Staging has two named test child profiles, four sample assignments and two test rewards. It has **no Auth users attached to the test family yet**.
+- Staging has two named test child profiles, four sample assignments and two test rewards. Two confirmed staging Auth users are attached: one `admin` parent account and one restricted `tablet` account. Their real account IDs passed simulated authenticated-role SQL checks, including tablet denial and parent approval; a true browser sign-in still requires the user to enter their own test passwords.
 - `parent-staging.html` and `tablet-staging.html` are wired to the **staging API and staging publishable key** with separate browser storage keys. They are on the feature branch only and not publicly hosted.
 - GitHub Actions browser-client smoke tests passed on the feature branch, including staging page wiring.
-- Remaining: create test-only Supabase Auth parent/tablet users through the Auth dashboard (never manually insert passwords into auth.users); attach family memberships; stage live sign-in and visual/device tests.
+- Remaining: use the downloadable GitHub Actions staging preview artifact to verify real password login, page rendering and complete parent/tablet handoff; then test on actual devices. No production deployment until approved.
 
 ## Security and business rules
 
