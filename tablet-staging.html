@@ -97,8 +97,10 @@ function render(){
  const rewards=(store.rewards||[]).filter(r=>r.active).sort((a,b)=>a.points_cost-b.points_cost);
  $('rewardShop').innerHTML=rewards.length?rewards.map(r=>{
   const requested=pending.some(p=>p.reward_id===r.id), afford=points>=r.points_cost;
-  return '<div class="reward"><div><h3>'+escapeHTML(r.title)+'</h3><div class="muted small">'+escapeHTML(r.description||'')+'</div><div class="points" style="font-size:18px">'+r.points_cost+' points</div></div>'+
-  '<button class="primary" data-reward="'+escapeHTML(r.id)+'" '+(requested||!afford?'disabled':'')+'>'+(requested?'Requested':afford?'Request reward':'Save more points')+'</button></div>';
+  const alreadyRedeemed=r.repeatable===false && (store.requests||[]).some(p=>
+    p.child_id===kid && p.reward_id===r.id && p.status==='approved');
+  return '<div class="reward"><div><h3>'+escapeHTML(r.title)+'</h3><div class="muted small">'+escapeHTML((r.description||'')+(r.repeatable===false?' · One-time reward':''))+'</div><div class="points" style="font-size:18px">'+r.points_cost+' points</div></div>'+
+  '<button class="primary" data-reward="'+escapeHTML(r.id)+'" '+(requested||!afford||alreadyRedeemed?'disabled':'')+'>'+(alreadyRedeemed?'Already redeemed':requested?'Requested':afford?'Request reward':'Save more points')+'</button></div>';
  }).join(''):'<p class="muted">No rewards have been added yet.</p>';
  const recent=(store.requests||[]).filter(r=>r.child_id===kid)
   .sort((a,b)=>b.requested_at.localeCompare(a.requested_at)).slice(0,8);
