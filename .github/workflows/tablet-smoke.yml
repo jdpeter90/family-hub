@@ -1,0 +1,28 @@
+name: Unified tablet dashboard smoke tests
+on:
+  push:
+    paths:
+      - "tablet.html"
+      - "tablet-shared.js"
+      - "v3-client.js"
+      - "tests/tablet-smoke.mjs"
+      - ".github/workflows/tablet-smoke.yml"
+  pull_request:
+    paths:
+      - "tablet.html"
+      - "tablet-shared.js"
+      - "v3-client.js"
+      - "tests/tablet-smoke.mjs"
+      - ".github/workflows/tablet-smoke.yml"
+jobs:
+  tablet-smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate unified tablet JS, layout, and escaping
+        run: node tests/tablet-smoke.mjs
