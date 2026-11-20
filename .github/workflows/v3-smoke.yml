@@ -24,3 +24,15 @@ jobs:
           node-version: '22'
       - name: Test v3 client and page scripts
         run: node tests/v3-smoke.test.cjs
+      - name: Assemble isolated staging preview
+        run: |
+          mkdir -p staging-preview
+          cp parent-staging.html tablet-staging.html v3-client.js staging-preview/
+          cp drafts/STAGING-PREVIEW-README.txt staging-preview/README.txt
+      - name: Upload staging preview package
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-hub-v3-staging-preview
+          path: staging-preview/
+          if-no-files-found: error
+          retention-days: 14
