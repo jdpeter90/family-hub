@@ -66,7 +66,7 @@ DECLARE cid uuid; rid uuid; BEGIN
   PERFORM set_config('test.expensive_reward',rid::text,true);
   ASSERT public.is_family_admin(current_setting('test.fid')::uuid);
 END;
-$;
+$$;
 
 RESET ROLE;
 UPDATE public.family_members SET role='tablet'
