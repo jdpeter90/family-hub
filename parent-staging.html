@@ -62,7 +62,7 @@ input[type=checkbox]{width:auto;transform:scale(1.2);margin-right:8px}
 <section class="panel"><h2 id="rewardHeading">Create a reward</h2>
 <form id="rewardForm"><label for="rewardTitle">Reward title</label><input id="rewardTitle" maxlength="120" required placeholder="Choose Friday's movie">
 <div class="fields" style="margin-top:10px"><div><label for="rewardCost">Point cost</label><input id="rewardCost" type="number" min="1" max="100000" value="50" required></div>
-<div style="align-self:end"><label style="margin:0"><input id="rewardActive" type="checkbox" checked>Active</label></div></div>
+<div style="align-self:end"><label style="margin:0"><input id="rewardActive" type="checkbox" checked>Active</label><label style="margin:8px 0 0"><input id="rewardRepeatable" type="checkbox" checked>Can redeem more than once</label></div></div>
 <label style="margin-top:10px" for="rewardDescription">Description (optional)</label><textarea id="rewardDescription" maxlength="500"></textarea>
 <div class="row" style="margin-top:12px"><button class="primary" type="submit">Save reward</button><button id="cancelReward" type="button">Clear</button></div></form>
 <hr style="border-color:#34445e"><h3>Reward catalog</h3><div id="rewardList"></div></section>
@@ -117,7 +117,7 @@ function render(){
  const assignments=[...(store.assignments||[])].sort((a,b)=>Number(b.active)-Number(a.active)||a.title.localeCompare(b.title));
  $('choreList').innerHTML=assignments.length?assignments.map(a=>'<div class="item"><div class="row between"><strong>'+esc(a.title)+'</strong><span class="tag '+(!a.active?'off':'')+'">'+(a.active?'Active':'Disabled')+'</span></div><div class="small muted">'+esc(childName(a.child_id))+' · '+a.points+' pts · '+(a.frequency==='weekly'?'Weekly, '+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][a.day_of_week]:a.frequency==='once'?'One time, '+a.due_date:'Daily ×'+a.times_per_day)+'</div><div class="row"><button data-action="editChore" data-id="'+esc(a.id)+'">Edit</button><button data-action="toggleChore" data-id="'+esc(a.id)+'">'+(a.active?'Disable':'Enable')+'</button></div></div>').join(''):'<p class="muted">No v3 chores created.</p>';
  const rewards=[...(store.rewards||[])].sort((a,b)=>Number(b.active)-Number(a.active)||a.title.localeCompare(b.title));
- $('rewardList').innerHTML=rewards.length?rewards.map(r=>'<div class="item"><div class="row between"><strong>'+esc(r.title)+'</strong><span class="tag '+(!r.active?'off':'')+'">'+(r.active?'Active':'Disabled')+'</span></div><div class="small muted">'+r.points_cost+' points'+(r.description?' · '+esc(r.description):'')+'</div><div class="row"><button data-action="editReward" data-id="'+esc(r.id)+'">Edit</button><button data-action="toggleReward" data-id="'+esc(r.id)+'">'+(r.active?'Disable':'Enable')+'</button></div></div>').join(''):'<p class="muted">No rewards created yet.</p>';
+ $('rewardList').innerHTML=rewards.length?rewards.map(r=>'<div class="item"><div class="row between"><strong>'+esc(r.title)+'</strong><span class="tag '+(!r.active?'off':'')+'">'+(r.active?'Active':'Disabled')+'</span></div><div class="small muted">'+r.points_cost+' points · '+(r.repeatable===false?'One-time reward':'Repeatable')+(r.description?' · '+esc(r.description):'')+'</div><div class="row"><button data-action="editReward" data-id="'+esc(r.id)+'">Edit</button><button data-action="toggleReward" data-id="'+esc(r.id)+'">'+(r.active?'Disable':'Enable')+'</button></div></div>').join(''):'<p class="muted">No rewards created yet.</p>';
  const tx=[...(store.transactions||[])].sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,30);
  $('ledger').innerHTML=tx.length?tx.map(t=>'<div class="item row between"><div><strong>'+esc(childName(t.child_id))+'</strong> · '+esc(t.description)+'<div class="small muted">'+new Date(t.created_at).toLocaleString()+'</div></div><strong class="'+(t.points>0?'success':'error')+'">'+(t.points>0?'+':'')+t.points+'</strong></div>').join(''):'<p class="muted">No points earned or redeemed yet.</p>';
 }
@@ -153,7 +153,7 @@ function editCatalogReward(id){
  const r=store.rewards.find(x=>x.id===id);if(!r)return;
  editReward=id;$('rewardHeading').textContent='Edit reward';$('rewardTitle').value=r.title;
  $('rewardCost').value=r.points_cost;$('rewardDescription').value=r.description||'';
- $('rewardActive').checked=r.active;$('rewardHeading').scrollIntoView({behavior:'smooth',block:'start'});
+ $('rewardActive').checked=r.active;$('rewardRepeatable').checked=r.repeatable!==false;$('rewardHeading').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function execute(job){
  if(working)return;working=true;message('Saving…');
@@ -180,7 +180,7 @@ $('choreForm').onsubmit=e=>{
 $('rewardForm').onsubmit=e=>{
  e.preventDefault();
  const body={title:$('rewardTitle').value.trim(),description:$('rewardDescription').value.trim(),
-  points_cost:Number($('rewardCost').value),active:$('rewardActive').checked,updated_at:new Date().toISOString()};
+  points_cost:Number($('rewardCost').value),active:$('rewardActive').checked,repeatable:$('rewardRepeatable').checked,updated_at:new Date().toISOString()};
  if(!body.title)return message('Enter a reward title.',true);
  execute(async()=>{
   if(editReward)await api.patch('rewards',editReward,ctx.familyId,body);
