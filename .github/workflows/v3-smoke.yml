@@ -1,0 +1,26 @@
+name: Family Hub v3 smoke tests
+
+on:
+  push:
+    branches:
+      - feature/family-hub-v3
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-client-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test v3 client and page scripts
+        run: node tests/v3-smoke.test.cjs
