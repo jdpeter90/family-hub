@@ -1,8 +1,24 @@
 -- Family Hub v3 staging-only regression tests
--- REQUIREMENTS: run on an ISOLATED TEST COPY after both v3 SQL files.
--- DO NOT run against production: temporarily modifies an admin membership
--- and creates fixture data; all changes are rolled back at the end.
+-- REQUIREMENTS: run on an ISOLATED TEST COPY after staging bootstrap and both v3 SQL files.
+-- DO NOT run against production: temporarily modifies synthetic staging memberships.
+-- The synthetic users and all fixture data are rolled back at the end.
 BEGIN;
+
+-- Synthetic fixtures created ONLY inside this transaction. These do not
+-- create usable email-password logins and are removed by ROLLBACK.
+INSERT INTO auth.users(id,aud,role,email,created_at,updated_at) VALUES
+ ('00000000-0000-4000-8000-0000000000a1','authenticated','authenticated','stage-parent-a@example.invalid',now(),now()),
+ ('00000000-0000-4000-8000-0000000000a2','authenticated','authenticated','stage-parent-b@example.invalid',now(),now());
+
+INSERT INTO public.families(id,name)
+VALUES ('00000000-0000-4000-8000-0000000000f1','Staging Family');
+INSERT INTO public.family_members(family_id,user_id,role) VALUES
+ ('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-0000000000a1','admin'),
+ ('00000000-0000-4000-8000-0000000000f1','00000000-0000-4000-8000-0000000000a2','admin');
+INSERT INTO public.child_profiles(id,family_id,name)
+VALUES ('00000000-0000-4000-8000-0000000000c1','00000000-0000-4000-8000-0000000000f1','Test Child');
+INSERT INTO public.events(family_id,title,starts_at)
+VALUES ('00000000-0000-4000-8000-0000000000f1','PRIVATE EVENT TEST',now());
 
 DO $$
 DECLARE
