@@ -1,0 +1,50 @@
+# Family Hub v3.0 — Chores & Rewards (STAGING)
+
+**Status: IN DEVELOPMENT — DO NOT MERGE OR DEPLOY.**
+
+This branch builds on Family Hub v2.1 without rewriting its calendar, meals, groceries or legacy chores. No v3 SQL has been applied to the live Supabase project.
+
+## Branch files
+
+| File | Function |
+| --- | --- |
+| index.html | Existing v2.1 app, plus a parent-only navigation link |
+| parent.html | Parent dashboard for chore/reward setup, reviews, and point adjustments |
+| tablet.html | Children's shared tablet interface: choose profile, submit chores, request rewards |
+| v3-client.js | Browser client; separate parent/tablet session keys; publishable key plus RLS |
+| drafts/v3-security-foundation.sql | UNAPPLIED role, RLS, grants, integrity constraints |
+| drafts/v3-rpc.sql | UNAPPLIED authenticated RPCs for submissions, approval, points and redemptions |
+| drafts/v3-regression-tests.sql | UNEXECUTED rollback-only staging integration checks |
+
+## Security and business rules
+
+- The two existing parent accounts are admins.
+- The dedicated tablet login must be a new Supabase Auth user with a family_members role of tablet; it must NOT use a parent's credentials.
+- A child profile selection is NOT authentication. Children sharing one device can select each other's profiles. Parent approval is the trust boundary.
+- The tablet can only read v3 tables in its family, submit chores and request rewards; no direct modification of the ledger, reviews, catalogs or legacy family data.
+- Points are awarded only on parent approval of submitted chores, and deducted only on parent approval of a reward request.
+- Parent adjustments require admin authorization and cannot take the balance below zero.
+- Chore repeats: daily (up to 5 occurrences/day), weekly (one chosen weekday), once (due date or overdue). All dates use America/Chicago.
+- Reward requests take a snapshot of cost/title; at most one identical pending request per child and reward.
+- Legacy v2.1 shared data becomes admin-only. This is compatible with the current two-admin setup, but would change permissions for future nonadmin household members.
+
+## Deployment gates — DO NOT SKIP
+
+1. Back up the live database and dashboard JSON; verify both parents have admin membership.
+2. Obtain explicit consent before creating a paid Supabase development branch or other billable staging project.
+3. Apply BOTH files to an isolated staging database in this order:
+   - drafts/v3-security-foundation.sql
+   - drafts/v3-rpc.sql
+4. Run drafts/v3-regression-tests.sql on STAGING ONLY. It temporarily changes a membership and creates fixture data, then rolls back.
+5. Review Supabase advisors; verify that tablet accounts cannot see/edit old events, meals, groceries or legacy chores while parents can still use all v2.1 features.
+6. Test daily repeats, weekly day handling, once/overdue chores, submissions and resubmissions, duplicate approval prevention, reward cost/negative balance, concurrent redemptions, session expiry, and mobile/tablet UX.
+7. After tests pass, create the dedicated tablet Auth account using the supported Auth admin workflow and assign its role. NEVER put any password, secret key, or service-role key in GitHub or in browser code.
+8. Obtain the user's approval before applying migrations to production or merging the GitHub feature branch into main.
+9. Test both parent phones and the Fire tablet, with post-launch error monitoring.
+
+## Caveats
+
+- Current v3 code is NOT functioning in production, because the v3 RPCs and RLS are not deployed.
+- No real Supabase end-to-end test has been performed. The frontend client passed a mocked role/login/RPC smoke test and the JavaScript parses successfully.
+- Legacy chores are not automatically migrated. The new v3 assignments live separately, preserving v2.1 behavior during development.
+- Backend authorization matters; disabled buttons and a child-selection UI are never security controls.
