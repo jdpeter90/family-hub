@@ -28,25 +28,25 @@ CREATE TABLE public.events(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  family_id uuid NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
  title text NOT NULL,description text,starts_at timestamptz NOT NULL,
- assigned_to text,color text,created_at timestamptz NOT NULL DEFAULT now()
+ ends_at timestamptz,assigned_to text,color text,created_at timestamptz DEFAULT now()
 );
 CREATE TABLE public.chores(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  family_id uuid NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
  title text NOT NULL,assigned_to text,due_date date,completed boolean NOT NULL DEFAULT false,
- created_at timestamptz NOT NULL DEFAULT now()
+ created_at timestamptz DEFAULT now()
 );
 CREATE TABLE public.groceries(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  family_id uuid NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
- item_name text NOT NULL,completed boolean NOT NULL DEFAULT false,
- created_at timestamptz NOT NULL DEFAULT now()
+ item_name text NOT NULL,quantity text,completed boolean NOT NULL DEFAULT false,
+ created_at timestamptz DEFAULT now()
 );
 CREATE TABLE public.meals(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  family_id uuid NOT NULL REFERENCES public.families(id) ON DELETE CASCADE,
  day_of_week integer NOT NULL CHECK(day_of_week BETWEEN 0 AND 6),
- meal_name text NOT NULL, UNIQUE(family_id,day_of_week)
+ meal_name text NOT NULL, created_at timestamptz DEFAULT now(), UNIQUE(family_id,day_of_week)
 );
 CREATE TABLE public.child_profiles(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
