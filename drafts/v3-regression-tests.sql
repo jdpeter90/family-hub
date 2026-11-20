@@ -54,9 +54,19 @@ DECLARE cid uuid; rid uuid; BEGIN
   VALUES(current_setting('test.fid')::uuid,'V3 TEST - reward',4) RETURNING id INTO rid;
   PERFORM set_config('test.chore',cid::text,true);
   PERFORM set_config('test.reward',rid::text,true);
+  -- Additional edge-case fixtures (rolled back).
+  INSERT INTO public.chore_assignments(family_id,child_id,title,points,frequency,due_date)
+  VALUES(current_setting('test.fid')::uuid,current_setting('test.child')::uuid,
+    'V3 TEST - overdue one-off',7,'once',(now() AT TIME ZONE 'America/Chicago')::date - 1)
+  RETURNING id INTO cid;
+  PERFORM set_config('test.overdue_chore',cid::text,true);
+  INSERT INTO public.rewards(family_id,title,points_cost)
+  VALUES(current_setting('test.fid')::uuid,'V3 TEST - expensive reward',500)
+  RETURNING id INTO rid;
+  PERFORM set_config('test.expensive_reward',rid::text,true);
   ASSERT public.is_family_admin(current_setting('test.fid')::uuid);
 END;
-$$;
+$;
 
 RESET ROLE;
 UPDATE public.family_members SET role='tablet'
@@ -93,6 +103,11 @@ DECLARE completion_id uuid; request_id uuid; BEGIN
   request_id := public.request_reward(current_setting('test.reward')::uuid,
                                       current_setting('test.child')::uuid);
   PERFORM set_config('test.request',request_id::text,true);
+  completion_id:=public.submit_chore(current_setting('test.overdue_chore')::uuid,1);
+  PERFORM set_config('test.overdue_completion',completion_id::text,true);
+  request_id:=public.request_reward(current_setting('test.expensive_reward')::uuid,
+                                    current_setting('test.child')::uuid);
+  PERFORM set_config('test.expensive_request',request_id::text,true);
   BEGIN
     PERFORM public.approve_reward_request(request_id);
     RAISE EXCEPTION 'TEST FAILURE: tablet approved reward';
@@ -135,6 +150,24 @@ DECLARE points_balance bigint; BEGIN
   FROM public.point_transactions WHERE child_id=current_setting('test.child')::uuid;
   IF points_balance<>10 THEN RAISE EXCEPTION 'Expected 10 points after bonus, got %',points_balance; END IF;
 
+  PERFORM public.request_chore_revision(current_setting('test.overdue_completion')::uuid);
+  PERFORM set_config('request.jwt.claim.sub',current_setting('test.tablet'),true);
+  IF public.submit_chore(current_setting('test.overdue_chore')::uuid,1)
+     <> current_setting('test.overdue_completion')::uuid THEN
+    RAISE EXCEPTION 'Resubmitted chore was not the same completion';
+  END IF;
+  PERFORM set_config('request.jwt.claim.sub',current_setting('test.parent'),true);
+  PERFORM public.approve_chore(current_setting('test.overdue_completion')::uuid);
+  SELECT COALESCE(SUM(points),0) INTO points_balance FROM public.point_transactions
+  WHERE child_id=current_setting('test.child')::uuid;
+  IF points_balance<>17 THEN RAISE EXCEPTION 'Expected 17 points after rework, got %',points_balance; END IF;
+  BEGIN
+    PERFORM public.approve_reward_request(current_setting('test.expensive_request')::uuid);
+    RAISE EXCEPTION 'TEST FAILURE: unaffordable reward approved';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM LIKE 'TEST FAILURE:%' THEN RAISE; END IF;
+    IF SQLERRM NOT LIKE 'Insufficient points%' THEN RAISE; END IF;
+  END;
   BEGIN
     PERFORM public.adjust_child_points(current_setting('test.child')::uuid,-100,'Staging overdraft test');
     RAISE EXCEPTION 'TEST FAILURE: negative balance allowed';
@@ -144,5 +177,5 @@ DECLARE points_balance bigint; BEGIN
 END;
 $$;
 
-SELECT 'PASS: parent/tablet auth, chore approval, reward redemption, duplicate protection, point arithmetic' AS result;
+SELECT 'PASS: role boundaries, points, duplicate checks, overdue chores, rework, insufficient rewards' AS result;
 ROLLBACK;
