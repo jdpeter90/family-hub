@@ -1,0 +1,144 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#102438"><title>STAGING ONLY - Family Hub · Kids Chores</title>
+<style>
+:root{font:16px system-ui,-apple-system,Arial,sans-serif;color:#f4f7ff;background:#102438}
+*{box-sizing:border-box}body{margin:0}header{padding:18px;background:#152c43;border-bottom:1px solid #36516b}h1{margin:0;font-size:25px}h2{font-size:20px;margin:0 0 12px}h3{font-size:17px;margin:0 0 7px}
+main{max-width:940px;margin:auto;padding:16px}.muted{color:#c4d5e7}.small{font-size:13px}
+button,input{font:inherit;border-radius:12px;min-height:48px}button{border:1px solid #53718e;background:#234664;color:#fff;padding:10px 15px;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}button.primary{background:#168d79;border-color:#2ab598;font-weight:700}
+button.select{background:#1b405b;border-color:#5d96bd;font-size:20px;font-weight:700;min-height:70px;flex:1}
+button.select.active{background:#176c70;outline:3px solid #78ddc1}
+input{background:#0e2235;border:1px solid #53718e;padding:12px;color:#fff;width:100%}
+label{display:block;margin:12px 0 5px}.card{background:#19374f;border:1px solid #365976;border-radius:17px;padding:18px;margin-bottom:15px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.between{justify-content:space-between}
+.task{padding:14px 0;border-bottom:1px solid #3c5c78}.task:last-child{border-bottom:0}
+.points{font-weight:800;font-size:28px;color:#9fecc2}
+.pill{font-size:12px;border-radius:8px;padding:4px 9px;background:#315575;color:#e8f2ff}
+.pill.ok{background:#205f55}.pill.wait{background:#625739}.pill.bad{background:#744456}
+#login{max-width:450px;margin:45px auto}#login button{margin-top:16px;width:100%}
+#app{display:none}#status{min-height:22px;margin:12px 0}
+.reward{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #3c5c78}
+.reward:last-child{border-bottom:0}.reward button{flex-shrink:0}
+.error{color:#ffc0c0}.kidicon{font-size:28px;margin-right:7px}
+@media(max-width:550px){header{padding:14px}h1{font-size:22px}.card{padding:14px}.reward{align-items:flex-start;flex-direction:column}.reward button{width:100%}}
+</style></head>
+<body><div style="background:#663e1e;padding:12px;text-align:center;font-weight:700;color:#ffe2ae">🧪 STAGING ONLY — separate database, test accounts only</div><header><div class="row between"><div><h1>⭐ Family Hub · Kids</h1><div class="muted small">Do chores · Earn points · Request rewards</div></div><button id="signOut" style="display:none">Sign out</button></div></header>
+<main>
+<section id="login" class="card">
+<h2>Sign in to the family tablet</h2>
+<p class="muted small">Use the dedicated tablet account provided by a parent. Do not use a parent account here.</p>
+<form id="loginForm"><label for="loginEmail">Tablet email</label><input id="loginEmail" type="email" autocomplete="username" required>
+<label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required>
+<button class="primary" type="submit">Sign in</button></form><p id="loginError" class="error" role="status"></p></section>
+<div id="app"><section class="card"><h2>Who is using the tablet?</h2><div class="row" id="kidButtons"></div>
+<p class="muted small">Choose your name. A parent must approve your work before you receive points.</p></section>
+<div id="childDashboard" style="display:none">
+<div class="card"><div class="row between"><div><h2 id="childTitle" style="margin-bottom:3px"></h2><div class="muted small" id="today"></div></div><div style="text-align:right"><div class="points" id="pointBalance"></div><div class="muted small">available points</div></div></div></div>
+<div id="status" role="status" class="muted"></div>
+<section class="card"><div class="row between"><h2>🧹 Your chores</h2><button id="refresh">↻ Refresh</button></div><div id="tasks"></div></section>
+<section class="card"><h2>🎁 Reward shop</h2><div id="rewardShop"></div></section>
+<section class="card"><h2>📬 Your reward requests</h2><div id="requests"></div></section>
+</div></div>
+</main><script src="./v3-client.js"></script><script>
+(function(){
+'use strict';
+const api=FamilyHubV3.client('familyhub-staging-tablet-session',{api:'https://kytphqpfpchmmmbsmpcz.supabase.co',publishableKey:'sb_publishable_XAwDzAiXctflZWfpazRg3w_IJ7qf2K1'});
+const $=id=>document.getElementById(id);
+const escapeHTML=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+let ctx=null,store={},kid=null,loading=false;
+function showApp(yes){$('login').style.display=yes?'none':'block';$('app').style.display=yes?'block':'none';$('signOut').style.display=yes?'inline-block':'none'}
+function tell(s,bad){$('status').textContent=s;$('status').className=bad?'error':'muted'}
+function balance(id){return (store.transactions||[]).filter(t=>t.child_id===id).reduce((a,t)=>a+Number(t.points),0)}
+function profile(id){return (store.profiles||[]).find(c=>c.id===id)}
+async function fetchAll(){
+ if(!ctx)return;
+ const [profiles,assignments,completions,transactions,rewards,requests]=await Promise.all(
+  ['child_profiles','chore_assignments','chore_completions','point_transactions','rewards','reward_requests']
+  .map(t=>api.list(t,ctx.familyId)));
+ store={profiles,assignments,completions,transactions,rewards,requests};
+ if(kid&&!profile(kid))kid=null;
+ render();
+}
+function render(){
+ const kids=$('kidButtons');kids.replaceChildren();
+ (store.profiles||[]).forEach((p,i)=>{
+  const b=document.createElement('button');b.className='select'+(kid===p.id?' active':'');
+  b.type='button';b.textContent=(i===0?'🌟 ':'🚀 ')+p.name;
+  b.onclick=()=>{kid=p.id;sessionStorage.setItem('familyhub-selected-child',kid);render()};
+  kids.appendChild(b);
+ });
+ $('childDashboard').style.display=kid?'block':'none';
+ if(!kid)return;
+ const c=profile(kid),today=FamilyHubV3.localToday();
+ if(!c)return;
+ $('childTitle').textContent='Hi, '+c.name+'!';
+ $('today').textContent=new Date(today+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+ $('pointBalance').textContent=balance(kid).toLocaleString();
+ const chores=[];
+ (store.assignments||[]).filter(a=>a.child_id===kid&&a.active).forEach(a=>{
+  let occurrenceDate=today;
+  if(a.frequency==='weekly'&&Number(a.day_of_week)!==FamilyHubV3.dayOfWeek(today))return;
+  if(a.frequency==='once'){
+    if(a.due_date>today)return;
+    occurrenceDate=a.due_date;
+  }
+  for(let i=1;i<=Number(a.times_per_day);i++){
+    const done=(store.completions||[]).find(d=>d.assignment_id===a.id&&d.occurrence_date===occurrenceDate&&Number(d.occurrence_number)===i);
+    chores.push({a,i,done});
+  }
+ });
+ $('tasks').innerHTML=chores.length?chores.map(x=>{
+  const s=x.done?.status||'todo';
+  const label=s==='approved'?'✅ Approved':s==='pending'?'⏳ Waiting for parent':s==='needs_work'?'🔁 Needs another try':'Not submitted';
+  return '<div class="task"><div class="row between"><div><h3>'+escapeHTML(x.a.title)+(x.a.times_per_day>1?' · #'+x.i:'')+'</h3><div class="small muted">'+x.a.points+' points</div></div><span class="pill '+(s==='approved'?'ok':s==='pending'?'wait':s==='needs_work'?'bad':'')+'">'+label+'</span></div>'+
+  (s==='todo'||s==='needs_work'?'<div class="row" style="margin-top:10px"><button class="primary" data-submit="'+escapeHTML(x.a.id)+'" data-occurrence="'+x.i+'">'+(s==='needs_work'?'Submit again':'I did it!')+'</button></div>':'')+'</div>';
+ }).join(''):'<p class="muted">No chores scheduled for today. Enjoy your free time!</p>';
+ const points=balance(kid), pending=(store.requests||[]).filter(r=>r.child_id===kid&&r.status==='pending');
+ const rewards=(store.rewards||[]).filter(r=>r.active).sort((a,b)=>a.points_cost-b.points_cost);
+ $('rewardShop').innerHTML=rewards.length?rewards.map(r=>{
+  const requested=pending.some(p=>p.reward_id===r.id), afford=points>=r.points_cost;
+  return '<div class="reward"><div><h3>'+escapeHTML(r.title)+'</h3><div class="muted small">'+escapeHTML(r.description||'')+'</div><div class="points" style="font-size:18px">'+r.points_cost+' points</div></div>'+
+  '<button class="primary" data-reward="'+escapeHTML(r.id)+'" '+(requested||!afford?'disabled':'')+'>'+(requested?'Requested':afford?'Request reward':'Save more points')+'</button></div>';
+ }).join(''):'<p class="muted">No rewards have been added yet.</p>';
+ const recent=(store.requests||[]).filter(r=>r.child_id===kid)
+  .sort((a,b)=>b.requested_at.localeCompare(a.requested_at)).slice(0,8);
+ $('requests').innerHTML=recent.length?recent.map(r=>'<div class="task"><div class="row between"><strong>'+escapeHTML(r.reward_title_snapshot)+'</strong><span class="pill '+(r.status==='approved'?'ok':r.status==='declined'?'bad':'wait')+'">'+(r.status==='approved'?'Approved ✅':r.status==='declined'?'Declined':'Waiting for parent')+'</span></div><div class="muted small">'+r.points_cost_snapshot+' points</div></div>').join(''):'<p class="muted">No reward requests yet.</p>';
+}
+async function action(fn){
+ if(loading)return;loading=true;tell('Saving…');
+ try{await fn();await fetchAll();tell('All set!')}
+ catch(e){tell(e.message,true)}
+ finally{loading=false}
+}
+document.addEventListener('click',e=>{
+ const submit=e.target.closest('button[data-submit]');
+ if(submit&&kid){const id=submit.dataset.submit,n=Number(submit.dataset.occurrence);
+  return action(()=>api.rpc('submit_chore',{target_assignment_id:id,occurrence_no:n}));
+ }
+ const reward=e.target.closest('button[data-reward]');
+ if(reward&&kid){const r=store.rewards.find(x=>x.id===reward.dataset.reward);
+  if(!r||!confirm('Request "'+r.title+'" for '+r.points_cost+' points?'))return;
+  action(()=>api.rpc('request_reward',{target_reward_id:r.id,target_child_id:kid}));
+ }
+});
+$('refresh').onclick=()=>action(async()=>{});
+$('signOut').onclick=()=>{api.signOut();ctx=null;showApp(false);$('loginError').textContent='Signed out.'};
+$('loginForm').onsubmit=async e=>{
+ e.preventDefault();$('loginError').textContent='Signing in…';
+ try{await api.signIn($('loginEmail').value,$('loginPassword').value);
+  $('loginPassword').value='';ctx=await api.membership('tablet');
+  await fetchAll();showApp(true);$('loginError').textContent='';
+ }catch(err){api.signOut();$('loginError').textContent=err.message}
+};
+async function init(){
+ try{
+  await api.ensureSession();ctx=await api.membership('tablet');
+  kid=sessionStorage.getItem('familyhub-selected-child');
+  await fetchAll();showApp(true);
+ }catch(e){showApp(false);if(e.message!=='Please sign in.')$('loginError').textContent=e.message}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ctx&&!loading)fetchAll().catch(e=>tell(e.message,true))});
+setInterval(()=>{if(ctx&&!loading&&!document.hidden)fetchAll().catch(e=>tell(e.message,true))},20000);
+init();
+})();
+</script></body></html>
